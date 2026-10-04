@@ -3,6 +3,7 @@
 import { Box, Flex, HStack, Heading, Text, Badge, Button } from '@chakra-ui/react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useRightsStore } from '@/store/rights'
 
 const nav = [
   { href: '/', label: '窗口总览' },
@@ -12,6 +13,9 @@ const nav = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const batches = useRightsStore((state) => state.batches)
+  const pending = batches.filter((item) => item.status !== '生效').length
+  const version = useRightsStore((state) => state.version)
   return (
     <Flex minH="100vh">
       <Box as="aside" w={{ base: '72px', lg: '224px' }} bg="#0f172a" color="white" position="sticky" top={0} h="100vh" px={{ base: 2, lg: 3 }} py={4}>
@@ -23,9 +27,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </Box>
       <Box minW={0} flex={1}>
         <Flex h="64px" bg="white" borderBottom="1px solid" borderColor="gray.200" align="center" px={5} gap={3} position="sticky" top={0} zIndex={20}>
-          <Box flex={1}><Heading fontSize="sm">华映内容集团 · 2026 国际发行草案</Heading><Text fontSize="11px" color="gray.500" display={{ base: 'none', md: 'block' }}>法务与发行联合审阅</Text></Box>
-          <Badge colorScheme="green" variant="subtle">版本 v18 已自动保存</Badge>
-          <Button size="sm" colorScheme="blue">发起审批</Button>
+          <Box flex={1}><Heading fontSize="sm">华映内容集团 · 2026 国际发行草案</Heading><Text fontSize="11px" color="gray.500" display={{ base: 'none', md: 'block' }}>法务与发行联合审阅 · 变更批次绑定母地区修订号</Text></Box>
+          {pending > 0 ? <Badge colorScheme="orange" variant="subtle">{pending} 批失败/后到待恢复</Badge>
+            : <Badge colorScheme="green" variant="subtle">v{version} · {batches.length} 批全部生效</Badge>}
+          <Button size="sm" colorScheme="blue" as={Link} href="/windows">发起批次</Button>
         </Flex>
         <Box p={{ base: 3, lg: 5 }} maxW="1680px" mx="auto">{children}</Box>
       </Box>

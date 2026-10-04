@@ -4,18 +4,23 @@ import { Box, Flex, Grid, Heading, Text, Badge, Button, Table, Thead, Tbody, Tr,
 import Link from 'next/link'
 import { useRightsStore, useConflicts } from '@/store/rights'
 import { trpc } from '@/trpc/client'
+import { parentOf } from '@/lib/territory'
 
 export default function Dashboard() {
   const windows = useRightsStore((state) => state.windows)
   const comments = useRightsStore((state) => state.comments)
   const version = useRightsStore((state) => state.version)
+  const batches = useRightsStore((state) => state.batches)
+  const revisions = useRightsStore((state) => state.revisions)
   const conflicts = useConflicts()
   const catalog = trpc.catalog.useQuery()
+  const pendingBatches = batches.filter((item) => item.status !== '生效').length
+  const seaRevision = revisions['东南亚区域'] ?? 0
   const cards = [
-    { label: '授权窗口', value: windows.length, note: `${catalog.data?.works.length ?? 2} 部作品` },
-    { label: '责任地区', value: new Set(windows.map((item) => item.territory)).size, note: '联动地区矩阵' },
+    { label: '授权窗口', value: windows.filter((item) => item.status !== '已覆盖').length, note: `${catalog.data?.works.length ?? 2} 部作品` },
+    { label: '母地区责任组', value: new Set(windows.map((item) => item.territory)).size, note: '新/马归并东南亚核验' },
     { label: '高优先级冲突', value: conflicts.filter((item) => item.severity === '高').length, note: '阻止审批通过' },
-    { label: '当前草案', value: `v${version}`, note: '自动保留本地版本' },
+    { label: '当前草案 / 批次', value: `v${version} · ${batches.length} 批`, note: pendingBatches ? `${pendingBatches} 批失败/后到待处理 · 东南亚 R${seaRevision}` : `全部生效 · 东南亚 R${seaRevision}` },
   ]
   return (
     <Box>
@@ -44,9 +49,17 @@ export default function Dashboard() {
           <Text color="gray.500" fontSize="xs" mt={2}>规则完备度 {Math.max(0, 100 - conflicts.length * 18)}% · {comments.filter((item) => !item.resolved).length} 条意见待处理</Text>
         </Box>
       </Grid>
+      {pendingBatches > 0 && (
+        <Box bg="orange.50" border="1px solid" borderColor="orange.200" borderRadius="8px" p={3} mb={4}>
+          <Flex justify="space-between" align="center">
+            <Text fontSize="sm" color="orange.800">有 {pendingBatches} 个变更批次写入失败或修订落后，授权窗口与条款意见尚未落库。</Text>
+            <Button size="sm" colorScheme="orange" variant="outline" as={Link} href="/windows">前往批次台账恢复 / 重提</Button>
+          </Flex>
+        </Box>
+      )}
       <Box bg="white" border="1px solid" borderColor="gray.200" borderRadius="8px" overflow="hidden">
-        <Flex p={4} justify="space-between"><Heading size="md">待决授权条款</Heading><Button size="sm" variant="ghost">查看全部</Button></Flex>
-        <Table size="sm"><Thead><Tr><Th>作品 / 渠道</Th><Th>权利</Th><Th>地区</Th><Th>窗口</Th><Th>独占</Th><Th>状态</Th></Tr></Thead><Tbody>{windows.map((item) => <Tr key={item.id}><Td><Text fontWeight="600">{item.work}</Text><Text color="gray.500" fontSize="xs">{item.channel} · {item.id}</Text></Td><Td>{item.rights}</Td><Td>{item.territory}</Td><Td>{item.start} → {item.end}</Td><Td><Badge colorScheme={item.exclusive ? 'purple' : 'gray'}>{item.exclusive ? '独占' : '非独占'}</Badge></Td><Td><Badge colorScheme={item.status === '冲突' ? 'red' : item.status === '已确认' ? 'green' : 'orange'}>{item.status}</Badge></Td></Tr>)}</Tbody></Table>
+        <Flex p={4} justify="space-between"><Heading size="md">待决授权条款</Heading><Button size="sm" variant="ghost" as={Link} href="/windows">查看全部</Button></Flex>
+        <Table size="sm"><Thead><Tr><Th>作品 / 渠道</Th><Th>权利</Th><Th>地区 / 母地区</Th><Th>窗口</Th><Th>独占</Th><Th>批次·修订</Th><Th>状态</Th></Tr></Thead><Tbody>{windows.map((item) => <Tr key={item.id} opacity={item.status === '已覆盖' ? 0.45 : 1}><Td><Text fontWeight="600">{item.work}</Text><Text color="gray.500" fontSize="xs">{item.channel} · {item.id}</Text></Td><Td>{item.rights}</Td><Td><Text>{item.territory}</Text><Text color="gray.500" fontSize="10px">{parentOf(item.territory)}</Text></Td><Td>{item.start} → {item.end}</Td><Td><Badge colorScheme={item.exclusive ? 'purple' : 'gray'}>{item.exclusive ? '独占' : '非独占'}</Badge></Td><Td><Text fontSize="10px">{item.batchId ?? '—'} · R{item.revision ?? 0}</Text></Td><Td><Badge colorScheme={item.status === '冲突' ? 'red' : item.status === '已确认' ? 'green' : item.status === '已覆盖' ? 'gray' : 'orange'}>{item.status}</Badge></Td></Tr>)}</Tbody></Table>
       </Box>
     </Box>
   )
