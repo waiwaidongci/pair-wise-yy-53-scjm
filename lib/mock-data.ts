@@ -1,4 +1,10 @@
-import type { DraftVersion, LicenseWindow, RightsComment } from './types'
+import type { DraftVersion, LicenseWindow, RightsComment, Work } from './types'
+
+/** 作品：W-002《深港口岸》母地区为「东南亚区域」，其下拆分新加坡、马来西亚两个地区组。 */
+export const initialWorks: Work[] = [
+  { id: 'W-001', name: '《远山回声》', parentRegion: '中国大陆', latestRevision: 1 },
+  { id: 'W-002', name: '《深港口岸》', parentRegion: '东南亚区域', latestRevision: 1 },
+]
 
 export const initialWindows: LicenseWindow[] = [
   { id: 'RW-101', workId: 'W-001', work: '《远山回声》', channel: '星海影院', rights: '院线', territory: '中国大陆', start: '2026-10-18', end: '2026-12-05', exclusive: true, sublicense: false, priority: 1, status: '冲突' },
